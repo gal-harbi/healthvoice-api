@@ -13,7 +13,7 @@ The system enables patients to interact with a clinic voice agent in natural Heb
 * Book new appointments from real-time available slots.
 * Cancel or reschedule existing appointments with explicit user confirmation.
 
-                ┌─────────────────────────┐
+              ┌─────────────────────────┐
                 │     User / Caller       │
                 └───────────┬─────────────┘
                             │ (Voice Dialogue)
@@ -28,7 +28,6 @@ The system enables patients to interact with a clinic voice agent in natural Heb
     │  clinics_info.txt   │     │  FastAPI Backend (Render)  │
     │ (Branches, Services)│     │  https://healthvoice-api...│
     └─────────────────────┘     └────────────────────────────┘
-
 
 
 
