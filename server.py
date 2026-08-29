@@ -13,18 +13,25 @@ logger = logging.getLogger("HealthVoiceClinic")
 
 app = FastAPI(title="HealthVoice Clinic System")
 
-# Data Models
+# ==========================================================
+# Data Models (מותאמים 1:1 להגדרות ה-Tools ב-LiveHub)
+# ==========================================================
 class AuthRequest(BaseModel):
     id_number: Optional[str] = None
 
 class SlotRequest(BaseModel):
-    doctor_id: Optional[str] = None
-    specialty: Optional[str] = None
-    doctor_name: Optional[str] = None
+    clinic_name: Optional[str] = None
+    service_name: Optional[str] = None
 
 class BookRequest(BaseModel):
+    id_number: Optional[str] = None
+    clinic_name: Optional[str] = None
+    service_name: Optional[str] = None
+    slot: Optional[str] = None
+
+class CancelRequest(BaseModel):
     patient_id: Optional[str] = None
-    doctor_id: Optional[str] = None
+    doctor_name: Optional[str] = None
     slot_time: Optional[str] = None
 
 # In-Memory Database
@@ -69,9 +76,9 @@ PATIENTS = {
 }
 
 DOCTORS = {
-    "1": {"id": "1", "name": "ד״ר לוי", "specialty": "רופא משפחה", "clinic": "סניף מרכז - תל אביב"},
-    "2": {"id": "2", "name": "ד״ר ישראלי", "specialty": "רופא עור", "clinic": "סניף צפון - חיפה"},
-    "3": {"id": "3", "name": "ד״ר אברהם", "specialty": "רופאת עיניים", "clinic": "סניף דרום - באר שבע"}
+    "1": {"id": "1", "name": "ד״ר לוי", "specialty": "רופא משפחה", "clinic": "מרכז - תל אביב"},
+    "2": {"id": "2", "name": "ד״ר ישראלי", "specialty": "רופא עור", "clinic": "צפון - חיפה"},
+    "3": {"id": "3", "name": "ד״ר אברהם", "specialty": "רופאת עיניים", "clinic": "דרום - באר שבע"}
 }
 
 AVAILABLE_SLOTS = {
@@ -84,9 +91,6 @@ AVAILABLE_SLOTS = {
 # פונקציית עזר להדפסת תמונת מצב של כל התורים במערכת
 # ==========================================================
 def log_appointments_state(stage_title: str):
-    """
-    מדפיסה בצורה קריאה ומובנת את כל התורים הפנויים והתורים המוזמנים במערכת.
-    """
     separator = "=" * 70
     lines = [
         f"\n{separator}",
@@ -114,20 +118,18 @@ def log_appointments_state(stage_title: str):
         lines.append("  (אין תורים מוזמנים לאף מטופל כרגע)")
 
     lines.append(f"{separator}\n")
-    
-    # הדפסה בלוג
     logger.info("\n".join(lines))
 
 
-# 1. אימות מטופל
+# 1. אימות מטופל (get_patient_info)
 @app.post("/api/auth")
-def authenticate_patient(req: Dict[str, Any]):
-    logger.info(f"[START] התחלת אימות מטופל עם נתונים: {req}")
-    id_num = str(req.get("id_number", "")).strip()
+def authenticate_patient(req: AuthRequest):
+    logger.info(f"[START] התחלת אימות מטופל עם נתונים: {req.dict()}")
+    id_num = (req.id_number or "").strip()
     patient = PATIENTS.get(id_num)
     if not patient:
         for pid, pdata in PATIENTS.items():
-            if pid == id_num or pid in str(req):
+            if pid == id_num:
                 patient = pdata
                 break
     if not patient:
@@ -143,7 +145,7 @@ def authenticate_patient(req: Dict[str, Any]):
         "existing_appointments": patient["existing_appointments"]
     }
 
-# 2. מידע על מרפאות
+# 2. מידע על מרפאות (get_clinics_info)
 @app.get("/api/clinics/info")
 def get_clinics_info():
     logger.info("[START] התחלת שליפת מידע על מרפאות")
@@ -157,34 +159,24 @@ def get_clinics_info():
     logger.info(f"[SUCCESS] שליפת מידע על מרפאות הושלמה בהצלחה ({len(data['clinics'])} מרפאות)")
     return data
 
-# 3. משיכת תורים פנויים
+# 3. משיכת תורים פנויים (get_available_slots)
 @app.post("/api/slots")
-def get_slots(req: Dict[str, Any]):
-    logger.info(f"[START] התחלת חיפוש תורים עם פרמטרים: {req}")
-    doc_id = str(req.get("doctor_id", "")).strip()
-    search_term = str(req.get("specialty", "") or req.get("doctor_name", "") or "").lower()
-    
-    if doc_id in AVAILABLE_SLOTS:
-        doctor = DOCTORS[doc_id]
-        logger.info(f"[SUCCESS] נמצאו תורים עבור רופא מזהה {doc_id} ({doctor['name']})")
-        return {
-            "doctor_id": doc_id,
-            "doctor_name": doctor["name"],
-            "specialty": doctor["specialty"],
-            "clinic": doctor["clinic"],
-            "available_slots": AVAILABLE_SLOTS[doc_id]
-        }
+def get_slots(req: SlotRequest):
+    logger.info(f"[START] התחלת חיפוש תורים עם פרמטרים: {req.dict()}")
+    clinic = (req.clinic_name or "").strip()
+    service = (req.service_name or "").strip()
     
     for did, doctor in DOCTORS.items():
-        if (search_term and (search_term in doctor["specialty"] or search_term in doctor["name"])) or \
-           did in str(req) or doctor["specialty"] in str(req) or doctor["name"] in str(req):
-            logger.info(f"[SUCCESS] נמצאו תורים לפי חיפוש חופשי עבור {doctor['name']}")
+        match_clinic = not clinic or (clinic in doctor["clinic"] or doctor["clinic"] in clinic)
+        match_service = not service or (service in doctor["specialty"] or doctor["specialty"] in service)
+        if match_clinic and match_service:
+            logger.info(f"[SUCCESS] נמצאו תורים עבור {doctor['name']} ({doctor['specialty']})")
             return {
                 "doctor_id": did,
                 "doctor_name": doctor["name"],
                 "specialty": doctor["specialty"],
                 "clinic": doctor["clinic"],
-                "available_slots": AVAILABLE_SLOTS[did]
+                "available_slots": AVAILABLE_SLOTS.get(did, [])
             }
             
     all_slots = []
@@ -196,25 +188,26 @@ def get_slots(req: Dict[str, Any]):
     logger.info(f"[SUCCESS] הוחזרו כלל התורים הפנויים ({len(all_slots)} תורים זמינים)")
     return {"available_slots": all_slots}
 
-# 4. קביעת תור
+# 4. קביעת תור (book_appointment)
 @app.post("/api/book")
-def book_slot(req: Dict[str, Any]):
-    logger.info(f"[START] התחלת קביעת תור: {req}")
-    
-    # הדפסת מצב התורים לפני השינוי
+def book_slot(req: BookRequest):
+    logger.info(f"[START] התחלת קביעת תור: {req.dict()}")
     log_appointments_state("לפני קביעת תור")
 
-    p_id = str(req.get("patient_id", "")).strip()
-    d_id = str(req.get("doctor_id", "1")).strip()
-    slot_time = str(req.get("slot_time", "")).strip()
-    
-    if d_id not in AVAILABLE_SLOTS:
-        for did, slots in AVAILABLE_SLOTS.items():
-            if slot_time in slots:
-                d_id = did
-                break
-        else:
-            d_id = "1"
+    p_id = (req.id_number or "").strip()
+    slot_time = (req.slot or "").strip()
+    clinic = (req.clinic_name or "").strip()
+    service = (req.service_name or "").strip()
+
+    d_id = None
+    for did, doctor in DOCTORS.items():
+        if (service and (service in doctor["specialty"] or doctor["specialty"] in service)) or \
+           (clinic and (clinic in doctor["clinic"] or doctor["clinic"] in clinic)) or \
+           (slot_time and slot_time in AVAILABLE_SLOTS.get(did, [])):
+            d_id = did
+            break
+    if not d_id:
+        d_id = "1"
 
     doctor = DOCTORS.get(d_id, DOCTORS["1"])
     
@@ -234,9 +227,7 @@ def book_slot(req: Dict[str, Any]):
         PATIENTS[p_id]["existing_appointments"].append(new_appointment)
         logger.info(f"[DATA MUTATION] תור חדש התווסף למטופל {PATIENTS[p_id]['name']}: {new_appointment}")
 
-    # הדפסת מצב התורים אחרי השינוי
     log_appointments_state("אחרי קביעת תור")
-
     logger.info(f"[SUCCESS] קביעת התור הושלמה בהצלחה עבור מטופל {p_id}")
     return {
         "status": "confirmed",
@@ -249,18 +240,18 @@ def book_slot(req: Dict[str, Any]):
         }
     }
 
-# 5. ביטול תור
+# 5. ביטול תור (cancel_appointment)
 @app.post("/api/cancel")
-def cancel_appointment(req: Dict[str, Any]):
-    logger.info(f"[START] התחלת ביטול תור: {req}")
-    p_id = str(req.get("patient_id", "")).strip()
-    slot_time = str(req.get("slot_time", "")).strip()
-    doctor_name = str(req.get("doctor_name", "")).strip()
+def cancel_appointment(req: CancelRequest):
+    logger.info(f"[START] התחלת ביטול תור: {req.dict()}")
+    p_id = (req.patient_id or "").strip()
+    slot_time = (req.slot_time or "").strip()
+    doctor_name = (req.doctor_name or "").strip()
     
     patient = PATIENTS.get(p_id)
     if not patient:
         for pid, pdata in PATIENTS.items():
-            if pid == p_id or pid in str(req):
+            if pid == p_id:
                 patient = pdata
                 p_id = pid
                 break
@@ -269,7 +260,6 @@ def cancel_appointment(req: Dict[str, Any]):
         logger.warning(f"[FAIL] ביטול תור נכשל: מטופל {p_id} לא נמצא")
         raise HTTPException(status_code=404, detail="מטופל לא נמצא")
 
-    # הדפסת מצב התורים לפני הביטול
     log_appointments_state("לפני ביטול תור")
 
     removed_apt = None
@@ -290,10 +280,8 @@ def cancel_appointment(req: Dict[str, Any]):
         logger.warning(f"[FAIL] ביטול נכשל: לא נמצא תור תואם עבור מטופל {p_id}")
         return {"status": "error", "message": "לא נמצא תור תואם לביטול"}
 
-    # עדכון נתונים 1: הסרת התור מהמטופל
     logger.info(f"[DATA MUTATION] תור הוסר מרשומת המטופל {patient['name']}: {removed_apt}")
 
-    # עדכון נתונים 2: החזרת התור לרשימת הפנויים
     for did, doc in DOCTORS.items():
         if doc["name"] in removed_apt.get("doctor", ""):
             reconstructed_slot = f"{removed_apt.get('date')} {removed_apt.get('time')}".strip()
@@ -302,9 +290,7 @@ def cancel_appointment(req: Dict[str, Any]):
                 AVAILABLE_SLOTS[did].sort()
                 logger.info(f"[DATA MUTATION] התור '{reconstructed_slot}' הוחזר לתורים הפנויים של {doc['name']}")
 
-    # הדפסת מצב התורים אחרי הביטול
     log_appointments_state("אחרי ביטול תור")
-
     logger.info(f"[SUCCESS] ביטול התור הושלם בהצלחה עבור מטופל {p_id}")
     return {
         "status": "cancelled",
