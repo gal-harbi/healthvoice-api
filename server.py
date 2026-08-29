@@ -232,3 +232,8 @@ def cancel_appointment(req: Dict[str, Any]):
         "status": "cancelled",
         "message": f"התור עבור {removed_apt.get('doctor')} בתאריך {removed_apt.get('date')} בוטל בהצלחה."
     }
+
+@app.get("/health-check")
+def health_check():
+    return {"status": "ok"}
+
