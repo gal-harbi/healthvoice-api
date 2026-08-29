@@ -13,9 +13,7 @@ logger = logging.getLogger("HealthVoiceClinic")
 
 app = FastAPI(title="HealthVoice Clinic System")
 
-# ==========================================================
-# Data Models (מותאמים 1:1 להגדרות ה-Tools ב-LiveHub)
-# ==========================================================
+
 class AuthRequest(BaseModel):
     id_number: Optional[str] = None
 
@@ -144,20 +142,6 @@ def authenticate_patient(req: AuthRequest):
         "city": patient["city"],
         "existing_appointments": patient["existing_appointments"]
     }
-
-# 2. מידע על מרפאות (get_clinics_info)
-@app.get("/api/clinics/info")
-def get_clinics_info():
-    logger.info("[START] התחלת שליפת מידע על מרפאות")
-    data = {
-        "clinics": [
-            {"name": "מרכז - תל אביב", "address": "דיזנגוף 100", "services": ["רופא משפחה", "בדיקות דם", "רנטגן", "CT"]},
-            {"name": "צפון - חיפה", "address": "שדרות הנשיא 45", "services": ["רופא עור", "פיזיותרפיה", "אולטרסאונד"]},
-            {"name": "דרום - באר שבע", "address": "שדרות רגר 12", "services": ["רופאת עיניים", "אורתופדיה", "אק״ג"]}
-        ]
-    }
-    logger.info(f"[SUCCESS] שליפת מידע על מרפאות הושלמה בהצלחה ({len(data['clinics'])} מרפאות)")
-    return data
 
 # 3. משיכת תורים פנויים (get_available_slots)
 @app.post("/api/slots")
