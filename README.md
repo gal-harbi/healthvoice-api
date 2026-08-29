@@ -40,9 +40,8 @@ Base URL: `https://healthvoice-api.onrender.com`
 * **`998877665`** – אלון חסן (ראש העין) | No active appointments.
 
 ### Recommended Test Scenarios
-1. **Clinic Inquiries (RAG / No ID Required):** Ask general questions about branches, addresses, or services (e.g., *"איפה אפשר לעשות בדיקת דם?"* or *"מה שעות הפעילות בסניף חיפה?"*).
-2. **Patient Lookup & Existing Appointments:** Identify with ID `123456789` and ask *"מתי התור הקרוב שלי?"*.
-3. **Appointment Cancellation:** Ask to cancel the appointment with Dr. Levi, verify confirmation prompt, and complete cancellation.
-4. **Appointment Booking:** Request to book an appointment with a dermatologist (רופא עור) or family doctor, choose an available slot, and receive confirmation.
+1. **Patient Lookup & Existing Appointments:** Identify with ID `123456789` and ask *"מתי התור הקרוב שלי?"*.
+2. **Appointment Cancellation:** Ask to cancel the appointment with Dr. Levi, verify confirmation prompt, and complete cancellation.
+3. **Appointment Booking:** Request to book an appointment with a dermatologist (רופא עור) or family doctor, choose an available slot, and receive confirmation.
 
 ---
