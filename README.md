@@ -4,7 +4,7 @@ A voice-first medical clinic assistant integrating **AudioCodes LiveHub**, a **F
 
 ---
 
-## 🌟 Overview & Architecture
+## 🌟 Overview
 
 The system enables patients to interact with a clinic voice agent in natural Hebrew to:
 * Verify identity via Israeli ID, retrieve residency, and view active appointments from the database.
@@ -12,26 +12,6 @@ The system enables patients to interact with a clinic voice agent in natural Heb
 * Fetch open doctor appointments in real time.
 * Book new appointments with immediate data mutation across slots and patient records.
 * Cancel existing appointments with explicit user confirmation and slot release.
-
-
-
-┌─────────────────────────┐
-                │      User / Caller      │
-                └───────────┬─────────────┘
-                            │ (Voice Dialogue)
-                ┌───────────▼─────────────┐
-                │   AudioCodes LiveHub    │
-                │   (HEALTHVOICE-AGENT)   │
-                └───────┬─────────┬───────┘
-                        │         │
-           Knowledge/RAG│         │ REST Tools (JSON)
-                        ▼         ▼
-    ┌─────────────────────┐     ┌────────────────────────────┐
-    │  clinics_info.txt   │     │  FastAPI Backend (Render)  │
-    │ (Branches, Services)│     │  https://healthvoice-api...│
-    └─────────────────────┘     └────────────────────────────┘
-
-
     ---
 
 ## 🛠️ API Endpoints
