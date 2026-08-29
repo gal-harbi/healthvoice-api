@@ -12,7 +12,9 @@ The system enables patients to interact with a clinic voice agent in natural Heb
 * Fetch open doctor appointments in real time.
 * Book new appointments with immediate data mutation across slots and patient records.
 * Cancel existing appointments with explicit user confirmation and slot release.
-    ---
+
+
+---
 
 ## 🛠️ API Endpoints
 
